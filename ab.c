@@ -282,7 +282,8 @@ struct data {
 #define MAX_CONCURRENCY 20000
 
 /* --------------------- GLOBALS ---------------------------- */
-
+int defaultMaxId = 1000000;  
+int defaultMinId = 0;
 int verbosity = 0;      /* no verbosity by default */
 int recverrok = 0;      /* ok to proceed after socket receive errors */
 int posting = 0;        /* GET by default */
@@ -379,6 +380,7 @@ apr_xlate_t *from_ascii, *to_ascii;
 #endif
 
 static void write_request(struct connection * c);
+static void write_request(struct connection * c, int minId, int maxId);
 static void close_connection(struct connection * c);
 
 /* --------------------------------------------------------- */
@@ -675,7 +677,12 @@ static void ssl_proceed_handshake(struct connection *c)
 void replace_str(char *str, char *orig, char *rep, char *newstr);
 void get_new_host(char *host);
 void get_new_id(char *id);
-static void write_request(struct connection * c)
+
+static void write_request(struct connection * c) {
+  write_request(c, defaultMinId, defaultMaxId);
+}
+
+static void write_request(struct connection * c, int minId, int maxId)
 {
     do {
         apr_time_t tnow;
@@ -689,7 +696,7 @@ static void write_request(struct connection * c)
 			memset (new_request,'\0',2048);
 			char new_host[1024];
 			memset (new_host, '\0', 1024);
-			get_new_id(new_host);
+			get_new_id(new_host, minId, maxId);
 
 			replace_str(request, "REPLACE", new_host, new_request);
 			while (strlen(new_request) < reqlen) {
@@ -2357,13 +2364,13 @@ void replace_str(char *str, char *orig, char *rep, char *newstr)
 
 }
 
-void get_new_id(char *id) {
+void get_new_id(char *id, int minId, int maxId) {
 	double lasttime = apr_time_now();
 	//printf("lasttime = %f\n", lasttime);
 
 	unsigned int t = (unsigned int)lasttime;
 	srand(t);
-	sprintf(id, "%d", rand()%9000000+1000000);
+	sprintf(id, "%d", rand()% (maxId - minId) + minId);
 }
 
 
